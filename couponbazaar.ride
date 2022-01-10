@@ -2,40 +2,61 @@
 {-# CONTENT_TYPE DAPP #-}
 {-# SCRIPT_TYPE ACCOUNT #-}
 
+# using TESTNET
+# dApp:
+# https://testnet.wavesexplorer.com/address/3MpniGh4Ab64nzX6AXtoL5tzeC5EwSyHuaq/
+
 let accountPubKey = base58'HxF3FdYr3sD3ju9Y1wL4d5kmRtKJGhgSSYQkCyo78xGn'
 
 @Callable(i)
-func purchase() = {
-  let payment = getElement(i.payments, 0)
-  if(isDefined(payment.assetId)) then throw("Only should pay in waves")
-  else {
-    let customerAddr = toBase58String(i.caller.bytes)
-    let price = match getInteger(this, "item_A_coupon_price") {
-        case t:Int => t
-        case _ => 0
-      }
-    if(payment.amount > price) then throw("payment cant be higher than price" + price.toString())
-    else if(payment.amount < price) then throw("payment cant be less than price: " + price.toString())
-    else {
-      [
-        StringEntry("status:purchase_item_A_customer_" + customerAddr, "confirmed"),
-        IntegerEntry("price:purchase_item_A_customer_" + customerAddr, price)
-      ]
-    }
-  }
+func purchase(name: String) = {
+  if(size(i.payments) > 0) then {
+        let payment = getElement(i.payments, 0)
+    if(isDefined(name)) then {
+        if(isDefined(payment.assetId)) then throw("Only should pay in waves")
+          else {
+            let customerAddr = toBase58String(i.caller.bytes)
+            let price = match getInteger(this, "item_" + name + "_coupon_price") {
+                case t:Int => t
+                case _ => 0
+              }
+            if(price != 0) then {
+              if(payment.amount > price) then throw("payment cant be higher than price: " + price.toString())
+              else if(payment.amount < price) then throw("payment cant be less than price: " + price.toString())
+              else {
+                [
+                  StringEntry("status:purchase_item_" + name + "_customer_" + customerAddr, "confirmed"),
+                  IntegerEntry("price:purchase_item_" + name + "_customer_" + customerAddr, price)
+                ]
+              }
+            } else throw("Please enter valid coupon name: A or B")
+          }
+    } else throw("Coupon name should be present")
+  } else throw("Please attach payment")
 }
 
 @Callable(i)
-func setPrices() = {  
+func setPrices() = {  #hardcoded setting price for coupons
   if(i.callerPublicKey == accountPubKey) then{
     [
-    IntegerEntry("item_A_coupon_price", 30000000)
+    IntegerEntry("item_A_coupon_price", 30000000),
+    IntegerEntry("item_B_coupon_price", 40000000)
   ]
   } else {
     throw("Only owner can set prices")
   }
 }
 
+@Callable(i)
+func deleteEntry(key: String) = { #utility function for deleting entries while testing
+  if(i.callerPublicKey == accountPubKey) then {
+    [
+      DeleteEntry(key)
+    ]
+  } else {
+    throw("Only owner can delete entries")
+  }
+}
+
 @Verifier(tx)
 func verify() = sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)
-
