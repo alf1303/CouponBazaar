@@ -4,21 +4,25 @@ const dAppAddr = '3MpniGh4Ab64nzX6AXtoL5tzeC5EwSyHuaq';
 const dAppPk = '***********';
 
 describe('Test CouponBazaar purchase Function', () => {
-    it('Test buy coupon_A', async () => {
+    it('Test buy coupon A', async () => {
         let key1 = "status:purchase_item_A_customer_" + bobAddr
         let key2 = "price:purchase_item_A_customer_" + bobAddr
 
-        let call = {
-            function: "purchase",
-            args: []
-        }
         let payment = [{
             amount: 30000000, assetId: null
         }]
 
         let invokeBob = invokeScript({
             dApp: dAppAddr,
-            call: call,
+            call: {
+            function: "purchase",
+            args: [
+                {
+                    "type": "string",
+                    "value": "A"
+                }
+            ]
+        },
             payment: payment
         }, {privateKey: bobPk})
 
@@ -33,22 +37,66 @@ describe('Test CouponBazaar purchase Function', () => {
         // broadcast(invokeBob).then(response => console.log("Response: " + JSON.stringify(response))).catch(error => console.log("Error: " + JSON.stringify(error)))
     })
 
-    it("Buy coupon_A with higher price", async() => {
-        let call = {
-            function: "purchase",
-            args: []
-        }
+    it("Buy coupon B with higher price", async() => {
+
         let payment = [{
-            amount: 31000000, assetId: null
+            amount: 41000000, assetId: null
         }]
 
         let invokeBob = invokeScript({
             dApp: dAppAddr,
-            call: call,
+            call: {
+            function: "purchase",
+            args: [
+                {
+                    "type": "string",
+                    "value": "B"
+                }
+            ]
+        },
             payment: payment
         }, {privateKey: bobPk})
 
         await expect(broadcast(invokeBob)).rejectedWith("payment cant be higher than price")
+    })
+
+    it("Test if not coupon name provided", async () => {
+        let payment = [{
+            amount: 40000000, assetId: null
+        }]
+
+        let invokeBob = invokeScript({
+            dApp: dAppAddr,
+            call: {
+            function: "purchase",
+            args: []
+        },
+            payment: payment
+        }, {privateKey: bobPk})
+
+        await expect(broadcast(invokeBob)).rejectedWith("Error while executing account-script: function 'purchase takes 1 args but 0 were(was) given")
+    })
+
+        it("Test if invalid coupon name provided", async () => {
+        let payment = [{
+            amount: 40000000, assetId: null
+        }]
+
+        let invokeBob = invokeScript({
+            dApp: dAppAddr,
+            call: {
+            function: "purchase",
+            args: [
+                {
+                    "type": "string",
+                    "value": "C"
+                }
+            ]
+        },
+            payment: payment
+        }, {privateKey: bobPk})
+
+        await expect(broadcast(invokeBob)).rejectedWith("Please enter valid coupon name: A or B")
     })
 
     it("Test that only dApp owner can set prices", async() => {
