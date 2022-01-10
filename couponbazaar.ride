@@ -1,0 +1,41 @@
+{-# STDLIB_VERSION 5 #-}
+{-# CONTENT_TYPE DAPP #-}
+{-# SCRIPT_TYPE ACCOUNT #-}
+
+let accountPubKey = base58'HxF3FdYr3sD3ju9Y1wL4d5kmRtKJGhgSSYQkCyo78xGn'
+
+@Callable(i)
+func purchase() = {
+  let payment = getElement(i.payments, 0)
+  if(isDefined(payment.assetId)) then throw("Only should pay in waves")
+  else {
+    let customerAddr = toBase58String(i.caller.bytes)
+    let price = match getInteger(this, "item_A_coupon_price") {
+        case t:Int => t
+        case _ => 0
+      }
+    if(payment.amount > price) then throw("payment cant be higher than price" + price.toString())
+    else if(payment.amount < price) then throw("payment cant be less than price: " + price.toString())
+    else {
+      [
+        StringEntry("status:purchase_item_A_customer_" + customerAddr, "confirmed"),
+        IntegerEntry("price:purchase_item_A_customer_" + customerAddr, price)
+      ]
+    }
+  }
+}
+
+@Callable(i)
+func setPrices() = {  
+  if(i.callerPublicKey == accountPubKey) then{
+    [
+    IntegerEntry("item_A_coupon_price", 30000000)
+  ]
+  } else {
+    throw("Only owner can set prices")
+  }
+}
+
+@Verifier(tx)
+func verify() = sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)
+
