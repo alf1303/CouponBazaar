@@ -7,6 +7,7 @@
 # https://testnet.wavesexplorer.com/address/3MpniGh4Ab64nzX6AXtoL5tzeC5EwSyHuaq/
 
 let accountPubKey = base58'HxF3FdYr3sD3ju9Y1wL4d5kmRtKJGhgSSYQkCyo78xGn'
+let alicePubKey = base58'HxtsXAKo7k2EM5vvWiqRJHGy6cSc8pxWDEpQJhVYJXsa'
 
 @Callable(i)
 func purchase(name: String) = {
@@ -58,5 +59,15 @@ func deleteEntry(key: String) = { #utility function for deleting entries while t
   }
 }
 
+func checkMultiSig(tx: Transaction) = {
+  let accSig = if (sigVerify(tx.bodyBytes, tx.proofs[0], accountPubKey)) then 1 else 0
+  let aliceSig = if (sigVerify(tx.bodyBytes, tx.proofs[1], alicePubKey)) then 1 else 0
+  (accSig + aliceSig) == 2
+}
+
 @Verifier(tx)
-func verify() = sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)
+func verify() = {
+    match tx {
+    case t: SetScriptTransaction => checkMultiSig(t)
+    case _ => sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)
+}}
