@@ -67,7 +67,12 @@ func checkMultiSig(tx: Transaction) = {
 
 @Verifier(tx)
 func verify() = {
-    match tx {
-    case t: SetScriptTransaction => checkMultiSig(t)
-    case _ => sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)
-}}
+  sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)
+}
+
+# @Verifier(tx)
+# func verify() = {
+#     match tx {
+#     case t: SetScriptTransaction => checkMultiSig(t)
+#     case _ => sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)
+# }}
